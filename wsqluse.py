@@ -257,14 +257,14 @@ class WSQLshell():
 		return column_names
 
 	def get_records_columns(self, cursor, command, mode='usual'):
-		records, column_names = self.tryExecuteGet(cursor, command, mode='colnames')
+		records, column_names = self.tryExecuteGet(command, mode='colnames')
 		return records, column_names
 
 	def mark_record(self, records, tablename, column, value):
 		cursor, conn = self.create_get_cursor(mode=2)
 		for rec in records:
 			command = "UPDATE {} SET {}='{}' WHERE id={}".format(tablename, column, value, rec[0])
-			self.tryExecute(cursor, conn, command)
+			self.tryExecute(command)
 
 	def save_db_txt(self, tablename):
 		log_name = self.get_log_name()
@@ -593,11 +593,11 @@ class WSQLshell():
 		cursor.execute("ROLLBACK")
 		print('\tТранзакция провалилась. Откат.')
 
-	def tryExecuteGet(self, command, mode='usual'):
+	def tryExecuteGet(self, cursor, conn, command, mode='usual'):
 		'''Попытка исполнить команду и вернуть ответ через заданный курсор'''
 		try:
-			self.cursor.execute(command)
-			record = self.cursor.fetchall()
+			cursor.execute(command)
+			record = cursor.fetchall()
 			if mode == 'usual':
 				print('\tДанные получены -', record)
 				return record
