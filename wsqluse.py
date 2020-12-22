@@ -81,6 +81,10 @@ class WSQLshell():
 		else:
 			return cursor
 
+	def init_cursor_conn(self):
+		# Создает cursor, conn и присваивает их экземпляру для дальнейшего использования
+		self.cursor, self.conn = self.create_get_cursor(mode=2)
+
 	def check_car_inside(self, carnum, tablename):
 		'''Проверяет находится ли машина на территории предприятия'''
 		# self.check_presence(carnum, tablename, column)
