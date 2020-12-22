@@ -15,6 +15,7 @@ class WSQLshell():
 		self.user = user
 		self.password = password
 		self.host = host
+		self.cursor, self.conn = self.create_get_cursor(mode=2)
 
 	def get_cursor(self):
 		'''Возвращает курсор'''
@@ -260,14 +261,14 @@ class WSQLshell():
 		return column_names
 
 	def get_records_columns(self, cursor, command, mode='usual'):
-		records, column_names = self.tryExecuteGet(cursor, command, mode='colnames')
+		records, column_names = self.tryExecuteGet(command, mode='colnames')
 		return records, column_names
 
 	def mark_record(self, records, tablename, column, value):
 		cursor, conn = self.create_get_cursor(mode=2)
 		for rec in records:
 			command = "UPDATE {} SET {}='{}' WHERE id={}".format(tablename, column, value, rec[0])
-			self.tryExecute(cursor, conn, command)
+			self.tryExecute(command)
 
 	def save_db_txt(self, tablename):
 		log_name = self.get_log_name()
@@ -574,15 +575,20 @@ class WSQLshell():
 		cursor.close()
 		return record
 	
-	def tryExecute(self, cursor, conn, command):
+	def tryExecute(self, command, returning=True):
 		'''Попытка исполнить команду через заданный курсор'''
+		if returning:
+			command += 'RETURNING id'
 		print('\nПопытка выполнить комманду', command)
 		try:
-			cursor.execute(command)
-			conn.commit()
+			self.cursor.execute(command)
+			self.conn.commit()
+			if returning:
+				rec_id = self.cursor.fetchall()
+				return rec_id
 			print('\tУспешно!')
 		except:
-			self.transactionFail(cursor)
+			self.transactionFail(self.cursor)
 	
 	def transactionFail(self, cursor):
 		''' При неудачной транзакции - logging & rollback'''
@@ -591,19 +597,19 @@ class WSQLshell():
 		cursor.execute("ROLLBACK")
 		print('\tТранзакция провалилась. Откат.')
 
-	def tryExecuteGet(self, cursor, command, mode='usual'):
+	def tryExecuteGet(self, command, mode='usual'):
 		'''Попытка исполнить команду и вернуть ответ через заданный курсор'''
 		try:
-			cursor.execute(command)
-			record = cursor.fetchall()
+			self.cursor.execute(command)
+			record = self.cursor.fetchall()
 			if mode == 'usual':
 				print('\tДанные получены -', record)
 				return record
 			elif mode == 'colnames':
-				colnames = [desc[0] for desc in cursor.description]
+				colnames = [desc[0] for desc in self.cursor.description]
 				return record, colnames
 		except:
-			self.transactionFail(cursor)
+			self.transactionFail(self.cursor)
 
 	def addAlerts(self, cursor, conn, alerts, rec_id):
 		'''Добавляет строку в таблицу disputs, где указываются данные об инциденте'''
