@@ -593,11 +593,11 @@ class WSQLshell():
 		cursor.execute("ROLLBACK")
 		print('\tТранзакция провалилась. Откат.')
 
-	def tryExecuteGet(self, cursor, conn, command, mode='usual'):
+	def tryExecuteGet(self, command, mode='usual'):
 		'''Попытка исполнить команду и вернуть ответ через заданный курсор'''
 		try:
-			cursor.execute(command)
-			record = cursor.fetchall()
+			self.cursor.execute(command)
+			record = self.cursor.fetchall()
 			if mode == 'usual':
 				print('\tДанные получены -', record)
 				return record
