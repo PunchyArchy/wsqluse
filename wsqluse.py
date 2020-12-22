@@ -571,12 +571,17 @@ class WSQLshell():
 		cursor.close()
 		return record
 	
-	def tryExecute(self, command):
+	def tryExecute(self, command, returning=True):
 		'''Попытка исполнить команду через заданный курсор'''
+		if returning:
+			command += 'RETURNING id'
 		print('\nПопытка выполнить комманду', command)
 		try:
 			self.cursor.execute(command)
 			self.conn.commit()
+			if returning:
+				rec_id = self.cursor.fetchall()
+				return rec_id
 			print('\tУспешно!')
 		except:
 			self.transactionFail(self.cursor)
