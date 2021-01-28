@@ -1,5 +1,5 @@
 import psycopg2, logging
-import wsettings as s
+#import wsettings as s
 import xml.etree.ElementTree as xmlE
 from datetime import datetime
 from traceback import format_exc
@@ -15,7 +15,6 @@ class WSQLshell():
 		self.user = user
 		self.password = password
 		self.host = host
-		self.cursor, self.conn = self.create_get_cursor(mode=2)
 
 	def get_cursor(self):
 		'''Возвращает курсор'''
@@ -575,20 +574,20 @@ class WSQLshell():
 		cursor.close()
 		return record
 	
-	def tryExecute(self, command, returning=True):
+	def tryExecute(self, cursor, conn, command, returning=True):
 		'''Попытка исполнить команду через заданный курсор'''
 		if returning:
-			command += 'RETURNING id'
+			command += ' RETURNING id'
 		print('\nПопытка выполнить комманду', command)
 		try:
-			self.cursor.execute(command)
-			self.conn.commit()
+			cursor.execute(command)
+			conn.commit()
 			if returning:
-				rec_id = self.cursor.fetchall()
+				rec_id = cursor.fetchall()
 				return rec_id
 			print('\tУспешно!')
 		except:
-			self.transactionFail(self.cursor)
+			self.transactionFail(cursor)
 	
 	def transactionFail(self, cursor):
 		''' При неудачной транзакции - logging & rollback'''
@@ -597,19 +596,19 @@ class WSQLshell():
 		cursor.execute("ROLLBACK")
 		print('\tТранзакция провалилась. Откат.')
 
-	def tryExecuteGet(self, command, mode='usual'):
+	def tryExecuteGet(self, cursor, command, mode='usual'):
 		'''Попытка исполнить команду и вернуть ответ через заданный курсор'''
 		try:
-			self.cursor.execute(command)
-			record = self.cursor.fetchall()
+			cursor.execute(command)
+			record = cursor.fetchall()
 			if mode == 'usual':
 				print('\tДанные получены -', record)
 				return record
 			elif mode == 'colnames':
-				colnames = [desc[0] for desc in self.cursor.description]
+				colnames = [desc[0] for desc in cursor.description]
 				return record, colnames
 		except:
-			self.transactionFail(self.cursor)
+			self.transactionFail(cursor)
 
 	def addAlerts(self, cursor, conn, alerts, rec_id):
 		'''Добавляет строку в таблицу disputs, где указываются данные об инциденте'''
