@@ -1,5 +1,5 @@
 import psycopg2, logging
-import wsettings as s
+#import wsettings as s
 import xml.etree.ElementTree as xmlE
 from datetime import datetime
 from traceback import format_exc
@@ -570,12 +570,17 @@ class WSQLshell():
 		cursor.close()
 		return record
 	
-	def tryExecute(self, cursor, conn, command):
+	def tryExecute(self, cursor, conn, command, returning=True):
 		'''Попытка исполнить команду через заданный курсор'''
+		if returning:
+			command += ' RETURNING id'
 		print('\nПопытка выполнить комманду', command)
 		try:
 			cursor.execute(command)
 			conn.commit()
+			if returning:
+				rec_id = cursor.fetchall()
+				return rec_id
 			print('\tУспешно!')
 		except:
 			self.transactionFail(cursor)
