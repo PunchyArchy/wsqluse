@@ -15,7 +15,6 @@ class WSQLshell():
 		self.user = user
 		self.password = password
 		self.host = host
-		self.cursor, self.conn = self.create_get_cursor(mode=2)
 		self.debug = debug
 
 	def get_cursor(self):
@@ -82,6 +81,10 @@ class WSQLshell():
 			return cursor, conn
 		else:
 			return cursor
+
+	def init_cursor_conn(self):
+		# Создает cursor, conn и присваивает их экземпляру для дальнейшего использования
+		self.cursor, self.conn = self.create_get_cursor(mode=2)
 
 	def check_car_inside(self, carnum, tablename):
 		'''Проверяет находится ли машина на территории предприятия'''
@@ -261,7 +264,7 @@ class WSQLshell():
 		cursor, conn = self.create_get_cursor(mode=2)
 		for rec in records:
 			command = "UPDATE {} SET {}='{}' WHERE id={}".format(tablename, column, value, rec[0])
-			self.tryExecute(command)
+			self.tryExecute(cursor, conn, command)
 
 	def save_db_txt(self, tablename):
 		log_name = self.get_log_name()
@@ -564,7 +567,7 @@ class WSQLshell():
 	def tryExecute(self, cursor, conn, command, returning=True):
 		'''Попытка исполнить команду через заданный курсор'''
 		if returning:
-			command += 'RETURNING id'
+			command += ' RETURNING id'
 		self.show_print('\nПопытка выполнить комманду', command, mode='debug')
 		try:
 			cursor.execute(command)
