@@ -1,5 +1,5 @@
 import psycopg2, logging
-#import wsettings as s
+import wsettings as s
 import xml.etree.ElementTree as xmlE
 from datetime import datetime
 from traceback import format_exc
@@ -260,14 +260,14 @@ class WSQLshell():
 		return column_names
 
 	def get_records_columns(self, cursor, command, mode='usual'):
-		records, column_names = self.tryExecuteGet(command, mode='colnames')
+		records, column_names = self.tryExecuteGet(cursor, command, mode='colnames')
 		return records, column_names
 
 	def mark_record(self, records, tablename, column, value):
 		cursor, conn = self.create_get_cursor(mode=2)
 		for rec in records:
 			command = "UPDATE {} SET {}='{}' WHERE id={}".format(tablename, column, value, rec[0])
-			self.tryExecute(command)
+			self.tryExecute(cursor, conn, command)
 
 	def save_db_txt(self, tablename):
 		log_name = self.get_log_name()
