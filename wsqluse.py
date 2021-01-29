@@ -10,12 +10,13 @@ import base64
 
 
 class WSQLshell():
-	def __init__(self, dbname, user, password, host):
+	def __init__(self, dbname, user, password, host, debug=False):
 		self.dbname = dbname
 		self.user = user
 		self.password = password
 		self.host = host
 		self.cursor, self.conn = self.create_get_cursor(mode=2)
+		self.debug = debug
 
 	def get_cursor(self):
 		'''Возвращает курсор'''
@@ -201,9 +202,8 @@ class WSQLshell():
 					count += 1
 				except:
 					record_dict[column] = ''
-					print('ERROR', column_names, record)
-					#pass
-			record_dict['poligon'] = poligon_id 
+					self.show_print('ERROR', column_names, record, mode='debug')
+			record_dict['poligon'] = poligon_id
 			listname.append(record_dict)
 		return listname
 
@@ -220,8 +220,6 @@ class WSQLshell():
 		records, column_names =  self.get_records_columns(cursor, comm, mode='reports')
 		records = self.expand_reports_list(records)
 		column_names = self.expand_column_names(column_names)
-		#except:
-			#print(format_exc())
 		return records, column_names
 
 	def expand_reports_list(self, records):
@@ -236,18 +234,17 @@ class WSQLshell():
 				rec += [photo_in_data, photo_out_data]
 				new_records.append(rec)
 			except:
-				print('Не удалось сохранить фото!')
+				self.show_print('Не удалось сохранить фото!')
 				print(format_exc())
 		return new_records
 
 	def get_photodata(self, photoname):
-		print('Попытка достать', photoname)
+		self.show_print('Попытка достать', photoname, mode='debug')
 		full_name = os.sep.join((s.pics_folder, photoname))
 		if not os.path.exists(full_name):
 			full_name = os.sep.join((s.pics_folder, 'not_found.jpg'))
 		with open(full_name, 'rb') as fobj:
-			#photodata = fobj.read()
-                        photodata = str(base64.b64encode(fobj.read()))
+			photodata = str(base64.b64encode(fobj.read()))
 		return photodata
 
 	def expand_column_names(self, column_names):
@@ -257,7 +254,7 @@ class WSQLshell():
 		return column_names
 
 	def get_records_columns(self, cursor, command, mode='usual'):
-		records, column_names = self.tryExecuteGet(command, mode='colnames')
+		records, column_names = self.tryExecuteGet(cursor, command, mode='colnames')
 		return records, column_names
 
 	def mark_record(self, records, tablename, column, value):
@@ -270,14 +267,11 @@ class WSQLshell():
 		log_name = self.get_log_name()
 		filename = open(log_name, 'w', encoding='cp1251')
 		cursor = self.create_get_cursor()
-		#cursor.execute('select * from {}'.format(tablename))
 		request = 'id,car_number,brutto,tara,cargo, to_char("time_in",\'DD-MM-YY\')'
 		request += ',to_char("time_out",\'DD-MM-YY\'),inside,alerts,carrier,trash_type'
 		request += ',trash_cat,notes,operator,checked'
-		#print('request -', request)
 		td = log_name.split('/')[-1].split(' ')[0]
 		comm = "select {} from {} where time_in >= '{}' or time_out >= '{}'".format(request, tablename, td, td)
-		#print('comm is', comm)
 		cursor.execute(comm)
 		data = cursor.fetchall()
 		cursor.close()
@@ -288,11 +282,9 @@ class WSQLshell():
 			strname = strname.replace(')','')
 			carmodel = self.determineCarModel(allCarsDict, stringname[1])
 			strname += ', ' + carmodel
-			#print(strname)
-			#print(strname)
 			filename.write(strname)
 			filename.write('\n')
-		print('Сохранение отчета для диспутов завершено')
+		self.show_print('Сохранение отчета для диспутов завершено\n')
 		filename.close()
 
 	def saveDbTxt(self, tablename, dates=[]):
@@ -332,7 +324,7 @@ class WSQLshell():
 		cursor = self.create_get_cursor()
 		st_date = dates[-1]
 		end_date = dates[0]
-		print('st and end dates', st_date, end_date)
+		self.show_print('\nStart and end dates for saving records:', st_date, end_date, mode='debug')
 		request = 'id,car_number,brutto,tara,cargo, to_char("time_in",\'DD/MM/YY HH24:MI:SS\')'
 		request += ',to_char("time_out",\'DD/MM/YY HH24:MI:SS\'),inside,alerts,carrier,trash_type'
 		request += ',trash_cat,notes,operator,checked,tara_state,brutto_state'
@@ -392,8 +384,7 @@ class WSQLshell():
 			# fn.write(xmlE.tostring(tree).decode("utf-8"))
 		with open(s.rfid_logs_1c_xml_1pol, "wb") as fn:
 			tree.write(fn, encoding="cp1251")
-			# fn.write(xmlE.tostring(tree).decode("utf-8"))
-		print('Сохранение отчета в XML завершено')
+		self.show_print('\nСохранение отчета в XML завершено')
 
 	def saveDbXMLext(self, tablename, dates=[]):
 		'''Save database to XML file'''
@@ -499,7 +490,6 @@ class WSQLshell():
 			brutto_state.text = str(stringname[16])
 			carmodel = xmlE.SubElement(appt, 'carmodel')
 			carmodel.text = str(self.determineCarModel(allCarsDict, stringname[1]))
-		print("xml")
 		tree = xmlE.ElementTree(root)
 		# , encoding = 'cp1251'
 		with open(s.rfid_logs_1c_xml_ext, "wb") as fn:
@@ -508,7 +498,7 @@ class WSQLshell():
 		with open(s.rfid_logs_1c_xml_ext_1pol, "wb") as fn:
 			tree.write(fn, encoding="cp1251")
 		# fn.write(xmlE.tostring(tree).decode("utf-8"))
-		print('Сохранение отчета в XML_ext завершено \n')
+		self.show_print('Сохранение отчета в XML_ext завершено \n')
 
 	def getAllCarsDict(self, tablename):
 		allCarsList = self.get_all(tablename)
@@ -571,48 +561,57 @@ class WSQLshell():
 		cursor.close()
 		return record
 	
-	def tryExecute(self, command, returning=True):
+	def tryExecute(self, cursor, conn, command, returning=True):
 		'''Попытка исполнить команду через заданный курсор'''
 		if returning:
 			command += 'RETURNING id'
-		print('\nПопытка выполнить комманду', command)
+		self.show_print('\nПопытка выполнить комманду', command, mode='debug')
 		try:
-			self.cursor.execute(command)
-			self.conn.commit()
+			cursor.execute(command)
+			conn.commit()
 			if returning:
-				rec_id = self.cursor.fetchall()
+				rec_id = cursor.fetchall()
 				return rec_id
-			print('\tУспешно!')
+			self.show_print('\tУспешно!', mode='debug')
 		except:
-			self.transactionFail(self.cursor)
+			self.transactionFail(cursor)
 	
 	def transactionFail(self, cursor):
 		''' При неудачной транзакции - logging & rollback'''
-		print(format_exc())
+		self.show_print(format_exc())
 		logging.error(format_exc())
 		cursor.execute("ROLLBACK")
-		print('\tТранзакция провалилась. Откат.')
+		self.show_print('\tТранзакция провалилась. Откат.', mode='debug')
 
-	def tryExecuteGet(self, command, mode='usual'):
+	def tryExecuteGet(self, cursor, command, mode='usual'):
 		'''Попытка исполнить команду и вернуть ответ через заданный курсор'''
 		try:
-			self.cursor.execute(command)
-			record = self.cursor.fetchall()
+			cursor.execute(command)
+			record = cursor.fetchall()
 			if mode == 'usual':
-				print('\tДанные получены -', record)
+				self.show_print('\tДанные получены -', record, mode='debug')
 				return record
 			elif mode == 'colnames':
-				colnames = [desc[0] for desc in self.cursor.description]
+				colnames = [desc[0] for desc in cursor.description]
 				return record, colnames
 		except:
-			self.transactionFail(self.cursor)
+			self.transactionFail(cursor)
+
+	def join_tuple_string(self, msg):
+		return ' '.join(msg)
+
+	def show_print(self, *msg, mode='usual'):
+		msg = self.join_tuple_string(msg)
+		if mode == 'usual':
+			print(msg)
+		elif mode == 'debug' and self.debug:
+			print(msg)
 
 	def addAlerts(self, cursor, conn, alerts, rec_id):
 		'''Добавляет строку в таблицу disputs, где указываются данные об инциденте'''
 		print('\n###Добавляем новые алерты к записи###')
 		print('\talerts -', alerts)
 		if len(alerts) > 0:
-			print('\tи это больше нуля')
 			timenow = datetime.now()
 			command = "insert into {} ".format(s.disputs_table)
 			command += "(date, records_id, alerts) "
@@ -622,12 +621,11 @@ class WSQLshell():
 			try:
 				cursor.execute(command)
 				conn.commit()
-				print('\tУспешно!')
 			except:
 				self.transactionFail(cursor)
 
 	def updLastEvents(self, carnum, carrier, trash_type, trash_cat):
-		print('\t\tОбновление таблицы lastEvents')
+		print('\n\tОбновление таблицы lastEvents')
 		cursor, conn = self.create_get_cursor(mode=2)
 		carId = "select id from auto where car_number='{}' LIMIT 1".format(carnum)
 		comm = 'insert into {} '.format(s.last_events_table)
