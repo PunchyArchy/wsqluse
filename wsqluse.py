@@ -601,7 +601,7 @@ class WSQLshell():
 			self.transactionFail(cursor)
 
 	def join_tuple_string(self, msg):
-		return ' '.join(msg)
+		return ' '.join(map(str,msg))
 
 	def show_print(self, *msg, mode='usual'):
 		msg = self.join_tuple_string(msg)
