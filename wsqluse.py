@@ -1,5 +1,5 @@
 import psycopg2, logging
-import wsettings as s
+#import wsettings as s
 import xml.etree.ElementTree as xmlE
 from datetime import datetime
 from traceback import format_exc
