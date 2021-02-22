@@ -1,5 +1,5 @@
 import psycopg2, logging
-import wsettings as s
+#import wsettings as s
 import xml.etree.ElementTree as xmlE
 from datetime import datetime
 from traceback import format_exc
@@ -638,3 +638,38 @@ class WSQLshell():
 		comm += 'set carrier={}, trash_cat={}, trash_type={}'.format(carrier, trash_cat, trash_type)
 		cursor.execute(comm)
 		conn.commit()
+
+
+	def get_table_dict(self, command, tablename):
+		# Возвращает данные из таблицы, в виде имя поле-значение
+		unsend, col_names = self.get_strings(tablename, command)
+		if unsend and len(unsend) > 0:
+			table_dict = self.zip_dicts(unsend, col_names)
+			return table_dict
+		else:
+			return []
+
+	def get_strings(self, tablename, command):
+		# Берет таблицу  и проверяет каждую строку, была ли она принята WServer, возвращает не принятые
+		data, col_names = self.get_records(self.cursor, tablename, command=command)
+		self.show_print('Получены данные о недоставленных записях:', data, '.\nType:', type(data),
+							   '\nLen:', len(data), mode='debug')
+		if data and not len(data) == 0:
+			return data, col_names
+		else:
+			return None, None
+
+	def zip_dicts(self, unsend, col_names):
+		# Собирает словарь из значений и ключей, добавляет в список и возврашает
+		listname = []
+		for report in unsend:
+			a = dict(zip(col_names, report))
+			listname.append(a)
+		self.show_print('\n[zip_dicts] Collected dict:', listname, mode='debug')
+		return listname
+
+if __name__ == '__main__':
+	sqlshell = WSQLshell('wdb', 'watchman', 'hect0r1337', '192.168.100.109')
+	res = sqlshell.check_car_inside('В060ХА702', 'records')
+	print(res
+		  )
