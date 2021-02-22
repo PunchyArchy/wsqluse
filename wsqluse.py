@@ -147,11 +147,11 @@ class WSQLshell():
 		records_list = self.get_records_list(records, column_names, poligon_id)
 		self.save_json(records_list, s.cm_events_json, poligon_id)
 
-	def save_json_report(self, cursor, poligon_id, tablename, filename):
+	def save_json_report(self, cursor, poligon_id, tablename, filename, records_table='records'):
 		""" Функция для сохранения отчетов (filename) в формате JSON состоящей из ключей-значений из
 		таблицы (tablename)"""
 		if tablename == 'records':
-			records, column_names = self.get_reports(cursor)
+			records, column_names = self.get_reports(cursor, records_table)
 		else:
 			records, column_names = self.get_records(cursor, tablename)
 		records_list = self.get_records_list(records, column_names, poligon_id)
@@ -210,7 +210,7 @@ class WSQLshell():
 			listname.append(record_dict)
 		return listname
 
-	def get_reports(self, cursor):
+	def get_reports(self, cursor, records_table):
 		"""Получить записи заездов с таблицы records с даты (start_date) по сегодняшний день"""
 		request = 'id,car_number,brutto,tara,cargo, to_char("time_in",\'DD/MM/YY HH24:MI:SS\') as time_in'
 		request += ',to_char("time_out",\'DD/MM/YY HH24:MI:SS\') as time_out,inside,alerts,carrier,trash_type'
@@ -218,7 +218,7 @@ class WSQLshell():
 		request += ',(SELECT model FROM auto WHERE auto.car_number=records.car_number LIMIT 1)'
 		request += ',(SELECT alerts FROM disputs WHERE disputs.records_id=records.id LIMIT 1)'
 		comm = "SELECT {} FROM {} WHERE NOT (wserver_get is not null) and time_in > '14.11.2020' and not tara is null".format(
-			request, s.records_table)
+			request, records_table)
 		#comm = "SELECT {} FROM {} WHERE wserver_sent = False".format(request, s.records_table)
 		records, column_names =  self.get_records_columns(cursor, comm, mode='reports')
 		records = self.expand_reports_list(records)
@@ -601,7 +601,7 @@ class WSQLshell():
 			self.transactionFail(cursor)
 
 	def join_tuple_string(self, msg):
-		return ' '.join(map(str,msg))
+		return ' '.join(map(str, msg))
 
 	def show_print(self, *msg, mode='usual'):
 		msg = self.join_tuple_string(msg)
@@ -638,7 +638,6 @@ class WSQLshell():
 		comm += 'set carrier={}, trash_cat={}, trash_type={}'.format(carrier, trash_cat, trash_type)
 		cursor.execute(comm)
 		conn.commit()
-
 
 	def get_table_dict(self, command, cursor, tablename):
 		# Возвращает данные из таблицы, в виде имя поле-значение
