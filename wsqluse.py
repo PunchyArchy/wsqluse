@@ -601,7 +601,7 @@ class WSQLshell():
 			self.transactionFail(cursor)
 
 	def join_tuple_string(self, msg):
-		return ' '.join(msg)
+		return ' '.join(map(str,msg))
 
 	def show_print(self, *msg, mode='usual'):
 		msg = self.join_tuple_string(msg)
@@ -640,18 +640,18 @@ class WSQLshell():
 		conn.commit()
 
 
-	def get_table_dict(self, command, tablename):
+	def get_table_dict(self, command, cursor, tablename):
 		# Возвращает данные из таблицы, в виде имя поле-значение
-		unsend, col_names = self.get_strings(tablename, command)
+		unsend, col_names = self.get_strings(tablename, cursor, command)
 		if unsend and len(unsend) > 0:
 			table_dict = self.zip_dicts(unsend, col_names)
 			return table_dict
 		else:
 			return []
 
-	def get_strings(self, tablename, command):
+	def get_strings(self, tablename, cursor, command):
 		# Берет таблицу  и проверяет каждую строку, была ли она принята WServer, возвращает не принятые
-		data, col_names = self.get_records(self.cursor, tablename, command=command)
+		data, col_names = self.get_records(cursor, tablename, command=command)
 		self.show_print('Получены данные о недоставленных записях:', data, '.\nType:', type(data),
 							   '\nLen:', len(data), mode='debug')
 		if data and not len(data) == 0:
@@ -670,6 +670,11 @@ class WSQLshell():
 
 if __name__ == '__main__':
 	sqlshell = WSQLshell('wdb', 'watchman', 'hect0r1337', '192.168.100.109')
-	res = sqlshell.check_car_inside('В060ХА702', 'records')
-	print(res
-		  )
+	cursor, conn = sqlshell.create_get_cursor(mode=2)
+	command = "SELECT * FROM records where time_in::date='2021.02.22'"
+	res = sqlshell.get_table_dict(command, cursor, 'records')
+	for el in res:
+		print(el)
+	#res = sqlshell.check_car_inside('В060ХА702', 'records')
+	#print(res
+	#	  )
